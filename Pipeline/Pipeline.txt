@@ -1,0 +1,122 @@
+pipeline {
+    agent { node { label 'agent-java'}}
+    environment{
+        packageVersion = ''
+        ACCOUNT_ID = "id value"
+        REGION = "ap-south-1"
+    }
+
+    stages {
+        stage('Get version'){
+            steps{
+                script{
+                    def pom = readMavenPom file: 'pom.xml'
+                    pomMap['groupId'] = pom.groupId
+                    pomMap['version'] = pom.version
+                    pomMap['artifactId'] = pom.artifactId
+                    pomMap['packaging'] = pom.packaging
+                    packageVersion = "${pomMap.version}"
+                    echo "version:  ${packageVersion}"
+                }
+            }
+        }
+        stage('Install dependencies'){
+            steps{
+                sh 'mvn install'
+            }
+        }
+         stage('Unit Tests') {
+            steps {
+                sh 'mvn test'
+            }
+            post {
+                always {
+                    junit 'target/surefire-reports/*.xml'
+                }
+            }
+        }
+        stage('sonar scan'){
+            steps{
+               sh 'sonar-scanner'
+            }
+        }
+         stage('Package (Skip Tests)') {
+            steps {
+                sh 'mvn package -DskipTests'
+            }
+        }
+        stage('Start Dependencies for Integration Tests') {
+            steps {
+                sh 'docker-compose up -d'
+            }
+        }
+        stage('Integration Tests') {
+            steps {
+                sh 'mvn verify -DskipUnitTests'
+            }
+            post {
+                always {
+                    junit 'target/failsafe-reports/*.xml'
+                }
+            }
+        }
+        stage('Stop Integration Dependencies') {
+            steps {
+                sh 'docker-compose down'
+            }
+        }
+        stage('Publish Artifact') {
+                steps {
+                    nexusArtifactUploader(
+                        nexusVersion: 'nexus3',
+                        protocol: 'http',
+                        nexusUrl: '172.31.86.20:8081/',
+                        groupId: "${pomMap.groupId}",
+                        version: "${pomMap.version}",
+                        repository: "${component}",
+                        credentialsId: 'nexus-auth',
+                        artifacts: [
+                            [artifactId: "${component}",
+                            classifier: '',
+                            file: "./target/${component}-${pomMap.version}.jar",
+                            type: 'jar']
+                        ]
+                    )
+                }
+        stage('Docker Build') {
+                steps {
+                    script{
+                        sh """
+                            docker build -t joindevops/${component}:${packageVersion} .
+                        """
+                    }
+                }
+            }
+        }
+        stage('ECR Push'){
+                steps{
+                    script{
+                        sh """
+                        aws ecr get-login-password --region ${REGION} | docker login --username AWS --password-stdin ${ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com
+                        docker tag joindevops/${component}:${packageVersion} ${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com/${component}:${packageVersion}
+                        docker push ${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com/${component}:${packageVersion}
+                        """
+                    }
+                }
+            }    
+    }   
+}   post{
+            always{
+                echo 'cleaning up workspace'
+            }
+            success {
+            echo 'CI pipeline completed successfully'
+            }
+            failure {
+                emailext (
+                subject: FAILED. ,
+                body: "Build failed. ${env.BUILD_URL}",
+                to: "team@example.com"
+                )
+            }
+        }

@@ -1,0 +1,11 @@
+ alert: latency
+    expr: |
+      histogram_quantile(0.95,
+        sum(rate(http_request_duration_seconds_bucket[5m]))
+      ) > 0.3
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Moderate latency"
+      description: "latency is above 300ms."

@@ -1,2 +1,0 @@
-# 8byte
-Standard Application.

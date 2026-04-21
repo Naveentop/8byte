@@ -1,0 +1,16 @@
+apiversion: v1
+kind: ConfigMap
+metadata:
+   name: prometheus-config
+data:
+  prometheus.yml:
+      global:
+         scrape_interval: 15s
+         evaluation_interval: 15s
+      scrape-configs:
+      - job_name: m8byte-webserver
+        metrics_path: /metrics
+        scheme: http
+        static_configs:
+        - targets:
+          - 8byte-webserver: 8000

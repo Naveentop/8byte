@@ -1,0 +1,4 @@
+Logging Points:
+  For Logging purpose, install ElasticSearch and Kibana.
+  ElasticSerach: to collect the server logs(system logs, application logs etc).
+  Kibana: to visualise the collected logs in the dashboard.

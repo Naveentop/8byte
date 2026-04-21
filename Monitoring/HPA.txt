@@ -1,0 +1,28 @@
+apiversion: autoscaling/v1
+kind: HorizontalAutoScaler
+metadata:
+    name: 8byte-prod-deployment
+    namespace: prod-deployment
+spec:
+    scaleTargetRef:
+       apiversion: apps/v1
+       kind: deployment
+       name: 8byte-webserver
+    minReplicas: 50
+    maxReplicas: 500
+    targetCPUUtilizationPercentage: 75
+
+---
+
+# ⚖️ Horizontal Pod Autoscaler (HPA) – CPU & Memory Based Scaling
+
+## 📌 Overview
+This project demonstrates how to configure Kubernetes Horizontal Pod Autoscaler (HPA) to automatically scale application pods based on **CPU and Memory utilization**.
+
+HPA helps ensure:
+- High availability during traffic spikes
+- Efficient resource utilization
+- Cost optimization
+
+---
+User Traffic → Service → Deployment (Pods) ↔ HPA ↔ Metrics Server

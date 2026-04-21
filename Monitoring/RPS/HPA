@@ -1,0 +1,20 @@
+apiversion: autoscaling/v1
+kind: HorizontalPodAutoScaler
+metadata:
+    name: 8byte-prod-deployment
+    namespace: prod-deployment
+spec:
+    scaleTargetRef:
+       apiversion: apps/v1
+       kind: deployment
+       name: 8byte-webserver
+    minReplicas: 50
+    maxReplicas: 500
+    metrics:
+    - type: Object
+      object:
+        metrics:
+          name: rps
+        target:
+          type: AverageValue
+          AverageValue: 500

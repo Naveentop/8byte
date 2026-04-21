@@ -1,0 +1,13 @@
+ - alert: ModerateErrorRate
+    expr: |
+      (
+        sum(rate(http_requests_total{status=~"5.."}[5m]))
+        /
+        sum(rate(http_requests_total[5m]))
+      ) * 100 > 1
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Moderate error rate"
+      description: "Error rate is above 1%."
